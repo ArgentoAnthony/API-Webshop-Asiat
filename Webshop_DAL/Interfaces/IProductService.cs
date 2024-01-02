@@ -12,8 +12,9 @@ namespace Webshop_DAL.Interfaces
         IEnumerable<Product> GetProductBySearch(string search);
         IEnumerable<Product> GetProductByCategory(int id);
         IEnumerable<Product> GetAll();
-        bool VendeurCreateproduct(ProductFormDTO newProduct, int? id);
-        Product VendeurUpdateProduct(ProductFormDTO product);
-        bool VendeurDeleteProduct(int id);
+        bool Createproduct(ProductFormDTO newProduct, int? id);
+        Product UpdateProduct(ProductFormDTO product,int idProduct,int? id = null);
+        bool DeleteProduct(int idProduct,int? id = null);
+        IEnumerable<Product> GetAllVendeur(int? id);
     }
 }

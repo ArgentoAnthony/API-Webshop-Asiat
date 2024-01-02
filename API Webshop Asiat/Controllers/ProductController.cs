@@ -18,7 +18,7 @@ namespace API_Webshop_Asiat.Controllers
             _productService = productService;
             _jwtTokenService = tokenService;
         }
-        [HttpGet("/")]
+        [HttpGet()]
         public ActionResult GetItems()
         {
             return Ok(_productService.GetAll());
@@ -41,19 +41,64 @@ namespace API_Webshop_Asiat.Controllers
             string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
             int? id = _jwtTokenService.GetUserIdFromToken(token);
 
-            return Ok(_productService.VendeurCreateproduct(newProduct, id));
+            return Ok(_productService.Createproduct(newProduct, id));
         }
         [Authorize("IsVendeur")]
-        [HttpPost("modify-product")]
-        public IActionResult VendeurUpdate(ProductFormDTO product)
+        [HttpPut("modify-product/{idProduct}")]
+        public IActionResult VendeurUpdate(ProductFormDTO product, int idProduct)
         {
-            return Ok(_productService.VendeurUpdateProduct(product));
+            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            int? id = _jwtTokenService.GetUserIdFromToken(token);
+
+            try
+            {
+                return Ok(_productService.UpdateProduct(product, idProduct, id));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
         [Authorize("IsVendeur")]
-        [HttpDelete("delete-product")]
-        public IActionResult DeleteProduct(int id)
+        [HttpDelete("delete-product/{idProduct}")]
+        public IActionResult DeleteProduct(int idProduct)
         {
-            return Ok(_productService.VendeurDeleteProduct(id));
+            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            int? id = _jwtTokenService.GetUserIdFromToken(token);
+
+            return Ok(_productService.DeleteProduct(idProduct, id));
+        }
+
+        [Authorize("IsVendeur")]
+        [HttpGet("vendeur-product")]
+        public IActionResult GetVendeurProduct()
+        {
+            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            int? id = _jwtTokenService.GetUserIdFromToken(token);
+
+            return Ok(_productService.GetAllVendeur(id));
+        }
+
+        [Authorize("IsAdmin")]
+        [HttpPost("admin-create-product")]
+        public IActionResult AdminAddProduct(ProductFormDTO product)
+        {
+            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            int? id = _jwtTokenService.GetUserIdFromToken(token);
+
+            return Ok(_productService.Createproduct(product, id));
+        }
+        [Authorize("IsAdmin")]
+        [HttpDelete("admin-delete-product/{idProduct}")]
+        public IActionResult AdminDeleteProduct(int idProduct)
+        {
+            return Ok(_productService.DeleteProduct(idProduct));
+        }
+        [Authorize("IsAdmin")]
+        [HttpPut("admin-update-product/{idProduct}")]
+        public IActionResult AdminUpdateProduct(ProductFormDTO product, int idProduct)
+        {
+            return Ok(_productService.UpdateProduct(product, idProduct));
         }
     }
 }

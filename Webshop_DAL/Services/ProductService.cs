@@ -93,24 +93,150 @@ namespace Webshop_DAL.Services
                 Price = (double)dataReader["Price"],
                 Description = dataReader["Description"] ==DBNull.Value ? null : (string)dataReader["Description"],
                 Image = dataReader["Image"] == DBNull.Value ? null : (string)dataReader["Image"],
-                Category = (string)dataReader["Category"],
-                VendeurName = (string)dataReader["Vendeur"]
+                Category = dataReader["Category"].ToString(),
+                VendeurName = dataReader["Vendeur"].ToString()
             };    
         }
 
-        public bool VendeurCreateproduct(ProductFormDTO newProduct, int? id)
+        public bool Createproduct(ProductFormDTO newProduct, int? id)
         {
-            throw new NotImplementedException();
+            using(IDbConnection connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                using(IDbCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = $"INSERT INTO Articles " +
+                                          $"VALUES(@name, @quantity, @price, @description, @image, @category, @vendeur)";
+
+                    GenerateParameter(command, "name", newProduct.Name);
+                    GenerateParameter(command, "quantity", newProduct.Quantity);
+                    GenerateParameter(command, "price", newProduct.Price);
+                    GenerateParameter(command, "description", newProduct.Description);
+                    GenerateParameter(command, "image", newProduct.Image);
+                    GenerateParameter(command, "category", newProduct.Category);
+                    GenerateParameter(command, "vendeur", id);
+
+                    return command.ExecuteNonQuery() ==1;
+                }
+            }
+        }
+        public IEnumerable<Product> GetAllVendeur( int? id)
+        {
+
+            using (IDbConnection connection = new SqlConnection(_connectionString))
+            {
+
+                connection.Open();
+                using (IDbCommand command = connection.CreateCommand())
+                {
+
+                    command.CommandText = $"SELECT p.Id, p.[Name], p.[Quantity], p.[Price], p.[Description], p.[Image], c.[Name] as Category, u.[Username] as Vendeur " +
+                                            $"FROM Articles p " +
+                                            $"JOIN Category c on p.[Id_Category] = c.[Id] " +
+                                            $"JOIN Users u on p.[Id_Vendeur] = u.[Id] "+
+                                            $"WHERE p.Id_Vendeur = @id";
+
+                    GenerateParameter(command, "id", id);
+
+                    IDataReader reader = command.ExecuteReader();
+
+                    while (reader.Read())
+                        yield return Mapper(reader);
+                }
+            }
         }
 
-        public bool VendeurDeleteProduct(int id)
+        public bool DeleteProduct(int idProduct, int? id)
         {
-            throw new NotImplementedException();
+            using(IDbConnection connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                using(IDbCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = $"DELETE FROM Articles " +
+                                         $"WHERE Id = @idProduct ";
+
+                    if(id is not null)
+                    {
+                        command.CommandText += $"AND Id_Vendeur = @IdVendeur";
+                        GenerateParameter(command, "idVendeur", id);
+                    }
+                    GenerateParameter(command , "idProduct", idProduct);
+                    
+
+                    return command.ExecuteNonQuery() == 1;
+                }
+            }
         }
 
-        public Product VendeurUpdateProduct(ProductFormDTO product)
+        public Product UpdateProduct(ProductFormDTO product, int IdProduct, int? id)
         {
-            throw new NotImplementedException();
+            Product updatedProduct;
+            int categoryId;
+            int vendeurId;
+            using (IDbConnection connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                using(IDbCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = $"UPDATE Articles  SET " +
+                                          $"Name = @name, Quantity = @quantity, Price = @price, " +
+                                          $"[Description] = @description, [Image] = @image, Id_Category = @category " +
+                                          $"OUTPUT INSERTED.Id, INSERTED.Name, INSERTED.Quantity, INSERTED.Price, " +
+                                          $"INSERTED.Description, INSERTED.Image, INSERTED.Id_Category AS Category, INSERTED.Id_Vendeur AS Vendeur "+
+                                          $"WHERE Id = @idProduct ";
+                    if (id is not null)
+                    {
+                        command.CommandText += "AND Id_Vendeur = @idVendeur";
+                        GenerateParameter(command, "idVendeur", id);
+                    }
+                        
+
+                    GenerateParameter(command,"name", product.Name);
+                    GenerateParameter(command,"quantity", product.Quantity);
+                    GenerateParameter(command,"price", product.Price);
+                    GenerateParameter(command,"description", product.Description);
+                    GenerateParameter(command,"image", product.Image);
+                    GenerateParameter(command,"category", product.Category);
+                    GenerateParameter(command,"idProduct", IdProduct);
+                    
+
+                    using (IDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+
+                            updatedProduct = Mapper(reader);
+
+                            categoryId = Convert.ToInt32(reader["Category"]);
+                            vendeurId = Convert.ToInt32(reader["Vendeur"]);
+                        }
+                        else
+                            throw new Exception("Erreur premier reader");
+                    }
+
+                    using (IDbCommand categoryCommand = connection.CreateCommand())
+                    {
+                        categoryCommand.CommandText = $"SELECT Name FROM Category WHERE Id = @categoryId";
+                        GenerateParameter(categoryCommand, "categoryId", categoryId);
+
+                        object categoryName = categoryCommand.ExecuteScalar();
+                        updatedProduct.Category = categoryName?.ToString();
+                    }
+
+                    using (IDbCommand vendeurCommand = connection.CreateCommand())
+                    {
+
+                        vendeurCommand.CommandText = $"SELECT [Username] FROM Users WHERE Id = @vendeurId";
+                        GenerateParameter(vendeurCommand, "vendeurId", vendeurId);
+
+                        object vendeurName = vendeurCommand.ExecuteScalar();
+                        updatedProduct.VendeurName = vendeurName?.ToString();
+                    }
+
+                    return updatedProduct;
+                }
+            }
         }
     }
 }

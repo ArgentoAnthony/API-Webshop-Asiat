@@ -100,5 +100,48 @@ namespace API_Webshop_Asiat.Controllers
         {
             return Ok(_productService.UpdateProduct(product, idProduct));
         }
+
+        [Authorize("IsConnected")]
+        [HttpPatch("rating/")]
+        public IActionResult RatingProduct(Evaluation rating)
+        {
+            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            int? id = _jwtTokenService.GetUserIdFromToken(token);
+
+            return Ok(_productService.RatingProduct(rating, id));
+        }
+        [Authorize("IsConnected")]
+        [HttpPost("commentaire/")]
+        public IActionResult CommentProduct(Commentaires commentaire)
+        {
+            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            int? id = _jwtTokenService.GetUserIdFromToken(token);
+            try
+            {
+                return Ok(_productService.LeaveComment(commentaire, id));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        [Authorize("IsConnected")]
+        [HttpPatch("update-commentaire/")]
+        public IActionResult UpdateCommentaire(Commentaires commentaire)
+        {
+            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            int? id = _jwtTokenService.GetUserIdFromToken(token);
+
+            return Ok(_productService.UpdateComment(commentaire, id));
+        }
+        [Authorize("IsConnected")]
+        [HttpDelete("delete-commentaire/{idProduct}")]
+        public IActionResult DeleteCommentaire(int idProduct)
+        {
+            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            int? id = _jwtTokenService.GetUserIdFromToken(token);
+
+            return Ok(_productService.DeleteComment(idProduct, id));
+        }
     }
 }

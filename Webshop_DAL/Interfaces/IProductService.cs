@@ -16,5 +16,9 @@ namespace Webshop_DAL.Interfaces
         Product UpdateProduct(ProductFormDTO product,int idProduct,int? id = null);
         bool DeleteProduct(int idProduct,int? id = null);
         IEnumerable<Product> GetAllVendeur(int? id);
+        bool RatingProduct(Evaluation rating, int? id);
+        string LeaveComment(Commentaires commentaire, int? id);
+        bool UpdateComment(Commentaires commentaire, int? id);
+        bool DeleteComment(int commentaire, int? id);
     }
 }

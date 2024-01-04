@@ -26,12 +26,19 @@ namespace API_Webshop_Asiat.Controllers
         [HttpGet("search/{search}")]
         public IActionResult SearchProduct(string search)
         {
-            return Ok(_productService.GetProductBySearch(search));
+            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            int? id = _jwtTokenService.GetUserIdFromToken(token);
+
+            return Ok(_productService.GetProductBySearch(search, id));
         }
-        [HttpGet("category/{id}")]
-        public IActionResult GetByCategory(int id)
+        [HttpGet("category/{idCategory}")]
+        public IActionResult GetByCategory(int idCategory)
         {
-            return Ok(_productService.GetProductByCategory(id));
+            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            int? id = _jwtTokenService.GetUserIdFromToken(token);
+
+            return Ok(_productService.GetProductByCategory(idCategory, id));
+            return Ok(_productService.GetProductByCategory(idCategory, id));
         }
 
         [Authorize("IsVendeur")]

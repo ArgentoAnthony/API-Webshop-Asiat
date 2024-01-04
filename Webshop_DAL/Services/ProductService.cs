@@ -39,7 +39,7 @@ namespace Webshop_DAL.Services
             }
         }
 
-        public IEnumerable<Product> GetProductByCategory(int id)
+        public IEnumerable<Product> GetProductByCategory(int idCategory,int? id)
         {
             using(IDbConnection connection = new SqlConnection(_connectionString))
             {
@@ -50,35 +50,46 @@ namespace Webshop_DAL.Services
                                            $"FROM Articles p "+
                                            $"JOIN Category c ON p.[Id_Category] = c.[Id] "+
                                            $"JOIN Users u ON p.[Id_Vendeur] = u.[Id] "+
-                                           $"WHERE c.Id = @id";
-                    GenerateParameter(command, "id", id);
+                                           $"WHERE c.Id = @idCategory";
+                    GenerateParameter(command, "idCategory", idCategory);
 
-                    IDataReader reader = command.ExecuteReader();
 
-                    while (reader.Read())
-                        yield return Mapper(reader);
+                    using (IDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                            yield return Mapper(reader);
+                    }
+                    if (id is not null)
+                        AddToRecommandation(id, idCategory, connection);
                 }
             }
         }
 
-        public IEnumerable<Product> GetProductBySearch(string search)
+        public IEnumerable<Product> GetProductBySearch(string search, int? id)
         {
             using (IDbConnection connection = new SqlConnection(_connectionString))
             {
+                int? idCategory = null;
                 connection.Open();
                 using (IDbCommand command = connection.CreateCommand())
                 {
-                    command.CommandText = $"SELECT p.Id, p.[Name], p.[Quantity], p.[Price], p.[Description], p.[Image], c.[Name] as Category, u.[Username] as Vendeur " +
+                    command.CommandText = $"SELECT p.Id, p.[Name], p.[Quantity], p.[Price], p.[Description], p.[Image], c.[Name] as Category, u.[Username] as Vendeur, p.Id_Category " +
                                            $"FROM Articles p " +
                                            $"JOIN Category c ON p.[Id_Category] = c.[Id] " +
                                            $"JOIN Users u ON p.[Id_Vendeur] = u.[Id] " +
                                            $"WHERE p.Name LIKE '%' +@search + '%'";
                     GenerateParameter(command, "search", search);
 
-                    IDataReader reader = command.ExecuteReader();
-
-                    while (reader.Read())
-                        yield return Mapper(reader);
+                    using (IDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            idCategory = (int)reader["Id_Category"];
+                            yield return Mapper(reader);
+                        }
+                    }
+                    if (id is not null && idCategory is not null)
+                        AddToRecommandation(id, idCategory, connection);
                 }
             }
         }
@@ -328,6 +339,18 @@ namespace Webshop_DAL.Services
                     GenerateParameter(command, "idProduit", commentaires);
                     return command.ExecuteNonQuery() == 1;
                 }
+            }
+        }
+        private void AddToRecommandation(int? id, int? idCategory, IDbConnection connection)
+        {
+            using (IDbCommand command = connection.CreateCommand())
+            {
+
+                command.CommandText = $"INSERT INTO Recommandations VALUES (@idUser, @idCategory)";
+                GenerateParameter(command, "idUser", id);
+                GenerateParameter(command, "idCategory", idCategory);
+
+                command.ExecuteNonQuery();
             }
         }
     }

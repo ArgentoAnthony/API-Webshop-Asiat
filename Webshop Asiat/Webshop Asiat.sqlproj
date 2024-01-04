@@ -56,6 +56,7 @@
   <Import Condition="'$(SQLDBExtensionsRefPath)' == ''" Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
   <ItemGroup>
     <Folder Include="Properties" />
+    <Folder Include="Triggers" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="Articles.sql" />
@@ -65,6 +66,8 @@
     <Build Include="Commentaires.sql" />
     <Build Include="CommandList.sql" />
     <Build Include="Users.sql" />
+    <Build Include="Recommandations.sql" />
+    <Build Include="Triggers\LimitRecom.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Webshop Asiat.publish.xml" />

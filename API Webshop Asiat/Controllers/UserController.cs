@@ -52,8 +52,7 @@ namespace API_Webshop_Asiat.Controllers
         [HttpPost("update/")]
         public IActionResult UpdateAccount(AdminUpdateFormDTO newUserInfo)
         {
-            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-            int? id = _jwtTokenService.GetUserIdFromToken(token);
+            int? id = GetUserId();
 
             if (id != null)
             {
@@ -62,6 +61,7 @@ namespace API_Webshop_Asiat.Controllers
             else
             { return BadRequest("id not found in token claims."); }
         }
+
         [HttpPost("create-vendeur")]
         public IActionResult CreateVendeur(CreateVendeurDTO vendeur) 
         {
@@ -76,13 +76,11 @@ namespace API_Webshop_Asiat.Controllers
             
         }
 
-
         [HttpPut("update-vendeur")]
         [Authorize("IsVendeur")]
         public IActionResult UpdateVendeurAccount(VendeurUpdateFormDTO newUserInfo)
         {
-            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-            int? id = _jwtTokenService.GetUserIdFromToken(token);
+            int? id = GetUserId();
 
             if (id != null)
             {
@@ -92,14 +90,11 @@ namespace API_Webshop_Asiat.Controllers
             { return BadRequest("id not found in token claims."); }
         }
 
-
         [Authorize("IsConnected")]
         [HttpDelete("delete/")]
         public IActionResult DeleteAccount()
         {
-            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-
-            int? id = _jwtTokenService.GetUserIdFromToken(token);
+            int? id = GetUserId();
 
             if (id != null)
             {
@@ -113,9 +108,7 @@ namespace API_Webshop_Asiat.Controllers
         [HttpGet("details/")]
         public IActionResult DetailsAccount()
         {
-            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-
-            int? id = _jwtTokenService.GetUserIdFromToken(token);
+            int? id = GetUserId(); ;
 
             if (id != null)
                 try
@@ -155,6 +148,12 @@ namespace API_Webshop_Asiat.Controllers
         public IActionResult DetailsUser(int id)
         {
             return Ok(_userService.GetById("Users", id));
+        }
+        private int? GetUserId()
+        {
+            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            int? id = _jwtTokenService.GetUserIdFromToken(token);
+            return id;
         }
     }
 }

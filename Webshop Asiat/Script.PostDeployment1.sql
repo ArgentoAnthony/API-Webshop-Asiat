@@ -56,3 +56,13 @@ VALUES
 ('Kimono pour enfants', 20, 40, NULL, 'kimono_enfant.jpg', 1,1),
 ('Encens parfumé', 35, 6, 'Encens parfumé japonais pour méditation', 'encens.jpg', 8,1),
 ('Épée samouraï décorative', 9, 150, 'Réplique d''une épée de samouraï décorative', 'epee.jpg', 4,1);
+
+INSERT INTO Recommandations (Id_User, Id_Category)
+VALUES (1, 3),
+       (1, 4),
+       (1, 2),
+       (2, 1),
+       (2, 2),
+       (2, 5),
+       (3, 2),
+       (3, 1);

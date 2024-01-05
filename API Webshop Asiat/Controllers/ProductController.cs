@@ -13,49 +13,64 @@ namespace API_Webshop_Asiat.Controllers
     {
         private readonly IProductService _productService;
         private readonly JwtTokenService _jwtTokenService;
-        public ProductController(IProductService productService, JwtTokenService tokenService)
+        private readonly ICommentaireEvaluationService _comEvalService;
+        public ProductController(IProductService productService, JwtTokenService tokenService, ICommentaireEvaluationService comEvalService)
         {
             _productService = productService;
             _jwtTokenService = tokenService;
+            _comEvalService = comEvalService;
         }
+        private bool isConnected()
+        {
+            return GetUserId() is not null;
+        }
+        
         [HttpGet()]
         public ActionResult GetItems()
         {
             return Ok(_productService.GetAll());
         }
+        [HttpGet("{idProduct}")]
+        public ActionResult GetItem(int idProduct)
+        {
+            Product product = _productService.GetById("Articles", idProduct);
+            if (isConnected())
+            _productService.AddToRecommandation(GetUserId(), _productService.GetCategory(product.Category));
+            return Ok(_productService.GetById("Articles",idProduct));
+        }
+        
         [HttpGet("search/{search}")]
         public IActionResult SearchProduct(string search)
         {
-            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-            int? id = _jwtTokenService.GetUserIdFromToken(token);
-
-            return Ok(_productService.GetProductBySearch(search, id));
+            IEnumerable<Product> products = _productService.GetProductBySearch(search);
+            if(isConnected())
+            _productService.AddToRecommandation(GetUserId(), _productService.GetCategory(products.FirstOrDefault().Category));
+            return Ok(products);
         }
+
+
         [HttpGet("category/{idCategory}")]
         public IActionResult GetByCategory(int idCategory)
         {
-            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-            int? id = _jwtTokenService.GetUserIdFromToken(token);
-
-            return Ok(_productService.GetProductByCategory(idCategory, id));
-            return Ok(_productService.GetProductByCategory(idCategory, id));
+            if(isConnected())
+            _productService.AddToRecommandation(GetUserId(), idCategory);
+            return Ok(_productService.GetProductByCategory(idCategory));
         }
 
         [Authorize("IsVendeur")]
         [HttpPost("add-product")] 
         public IActionResult VendeurCreateProduct(ProductFormDTO newProduct)
         {
-            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-            int? id = _jwtTokenService.GetUserIdFromToken(token);
+            int? id = GetUserId();
 
             return Ok(_productService.Createproduct(newProduct, id));
         }
+        
         [Authorize("IsVendeur")]
         [HttpPut("modify-product/{idProduct}")]
         public IActionResult VendeurUpdate(ProductFormDTO product, int idProduct)
         {
-            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-            int? id = _jwtTokenService.GetUserIdFromToken(token);
+            int? id = GetUserId();
 
             try
             {
@@ -66,12 +81,12 @@ namespace API_Webshop_Asiat.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        
         [Authorize("IsVendeur")]
         [HttpDelete("delete-product/{idProduct}")]
         public IActionResult DeleteProduct(int idProduct)
         {
-            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-            int? id = _jwtTokenService.GetUserIdFromToken(token);
+            int? id = GetUserId();
 
             return Ok(_productService.DeleteProduct(idProduct, id));
         }
@@ -80,8 +95,7 @@ namespace API_Webshop_Asiat.Controllers
         [HttpGet("vendeur-product")]
         public IActionResult GetVendeurProduct()
         {
-            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-            int? id = _jwtTokenService.GetUserIdFromToken(token);
+            int? id = GetUserId();
 
             return Ok(_productService.GetAllVendeur(id));
         }
@@ -90,17 +104,18 @@ namespace API_Webshop_Asiat.Controllers
         [HttpPost("admin-create-product")]
         public IActionResult AdminAddProduct(ProductFormDTO product)
         {
-            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-            int? id = _jwtTokenService.GetUserIdFromToken(token);
+            int? id = GetUserId();
 
             return Ok(_productService.Createproduct(product, id));
         }
+        
         [Authorize("IsAdmin")]
         [HttpDelete("admin-delete-product/{idProduct}")]
         public IActionResult AdminDeleteProduct(int idProduct)
         {
             return Ok(_productService.DeleteProduct(idProduct));
         }
+        
         [Authorize("IsAdmin")]
         [HttpPut("admin-update-product/{idProduct}")]
         public IActionResult AdminUpdateProduct(ProductFormDTO product, int idProduct)
@@ -115,32 +130,33 @@ namespace API_Webshop_Asiat.Controllers
             string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
             int? id = _jwtTokenService.GetUserIdFromToken(token);
 
-            return Ok(_productService.RatingProduct(rating, id));
+            return Ok(_comEvalService.RatingProduct(rating, id));
         }
+        
         [Authorize("IsConnected")]
         [HttpPost("commentaire/")]
         public IActionResult CommentProduct(Commentaires commentaire)
         {
-            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-            int? id = _jwtTokenService.GetUserIdFromToken(token);
+            int? id = GetUserId();
             try
             {
-                return Ok(_productService.LeaveComment(commentaire, id));
+                return Ok(_comEvalService.LeaveComment(commentaire, id));
             }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
         }
+        
         [Authorize("IsConnected")]
         [HttpPatch("update-commentaire/")]
         public IActionResult UpdateCommentaire(Commentaires commentaire)
         {
-            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-            int? id = _jwtTokenService.GetUserIdFromToken(token);
+            int? id = GetUserId();
 
-            return Ok(_productService.UpdateComment(commentaire, id));
+            return Ok(_comEvalService.UpdateComment(commentaire, id));
         }
+
         [Authorize("IsConnected")]
         [HttpDelete("delete-commentaire/{idProduct}")]
         public IActionResult DeleteCommentaire(int idProduct)
@@ -148,7 +164,40 @@ namespace API_Webshop_Asiat.Controllers
             string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
             int? id = _jwtTokenService.GetUserIdFromToken(token);
 
-            return Ok(_productService.DeleteComment(idProduct, id));
+            return Ok(_comEvalService.DeleteComment(idProduct, id));
+        }
+
+        [Authorize("IsConnected")]
+        [HttpGet("get-recommandation")]
+        public IActionResult GetRecommandation()
+        {
+            int? id = GetUserId();
+            return Ok(_productService.GetRecommendedItems(id));
+        }
+        
+        [Authorize("IsModo")]
+        [HttpDelete("modo-delete-comment")]
+        public IActionResult ModoDeleteCommentaire(Commentaires commentaire)
+        {
+            return Ok(_comEvalService.DeleteComment(commentaire.Id, commentaire.Id_User));
+        }
+        
+        [HttpGet("get-comment")]
+        public IActionResult GetComments()
+        {
+            return Ok(_comEvalService.GetAll("Commentaires"));
+        }
+        
+        [HttpGet("get-comment/{idProduct}")]
+        public IActionResult GetCommentsByProduct(int idProduct)
+        {
+            return Ok(_comEvalService.GetCommentsByProduct(idProduct));
+        }
+        private int? GetUserId()
+        {
+            string token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            int? id = _jwtTokenService.GetUserIdFromToken(token);
+            return id;
         }
     }
 }

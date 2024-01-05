@@ -16,6 +16,30 @@ namespace Webshop_DAL.Services
         public ProductService(IConfiguration config) : base(config)
         {
         }
+        public override Product Mapper(IDataReader dataReader)
+        {
+            return new Product
+            {
+                Id = (int)dataReader["id"],
+                Name = (string)dataReader["Name"],
+                Quantity = (int)dataReader["Quantity"],
+                Price = (double)dataReader["Price"],
+                Description = dataReader["Description"] ==DBNull.Value ? null : (string)dataReader["Description"],
+                Image = dataReader["Image"] == DBNull.Value ? null : (string)dataReader["Image"],
+                Category = dataReader["Category"].ToString(),
+                VendeurName = dataReader["Vendeur"].ToString()
+            };    
+        }
+        private ProductMiniature MapperMiniature(IDataReader dataReader)
+        {
+            return new ProductMiniature
+            {
+                Name = (string)dataReader["Name"],
+                Price = (double)dataReader["Price"],
+                Description = dataReader["Description"] == DBNull.Value ? null : (string)dataReader["Description"],
+                Image = dataReader["Image"] == DBNull.Value ? null : (string)dataReader["Image"]
+            };
+        }
         public IEnumerable<Product> GetAll()
         {
 
@@ -38,8 +62,21 @@ namespace Webshop_DAL.Services
                 }
             }
         }
+        public int GetCategory(string category)
+        {
+            using(IDbConnection connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                using(IDbCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = $"SELECT Id FROM Category WHERE Name LIKE @name";
+                    GenerateParameter(command, "name", category);
 
-        public IEnumerable<Product> GetProductByCategory(int idCategory,int? id)
+                    return (int)command.ExecuteScalar();
+                }
+            }
+        }
+        public IEnumerable<Product> GetProductByCategory(int idCategory)
         {
             using(IDbConnection connection = new SqlConnection(_connectionString))
             {
@@ -59,17 +96,13 @@ namespace Webshop_DAL.Services
                         while (reader.Read())
                             yield return Mapper(reader);
                     }
-                    if (id is not null)
-                        AddToRecommandation(id, idCategory, connection);
                 }
             }
         }
-
-        public IEnumerable<Product> GetProductBySearch(string search, int? id)
+        public IEnumerable<Product> GetProductBySearch(string search)
         {
             using (IDbConnection connection = new SqlConnection(_connectionString))
             {
-                int? idCategory = null;
                 connection.Open();
                 using (IDbCommand command = connection.CreateCommand())
                 {
@@ -84,31 +117,12 @@ namespace Webshop_DAL.Services
                     {
                         while (reader.Read())
                         {
-                            idCategory = (int)reader["Id_Category"];
                             yield return Mapper(reader);
                         }
                     }
-                    if (id is not null && idCategory is not null)
-                        AddToRecommandation(id, idCategory, connection);
                 }
             }
         }
-
-        public override Product Mapper(IDataReader dataReader)
-        {
-            return new Product
-            {
-                Id = (int)dataReader["id"],
-                Name = (string)dataReader["Name"],
-                Quantity = (int)dataReader["Quantity"],
-                Price = (double)dataReader["Price"],
-                Description = dataReader["Description"] ==DBNull.Value ? null : (string)dataReader["Description"],
-                Image = dataReader["Image"] == DBNull.Value ? null : (string)dataReader["Image"],
-                Category = dataReader["Category"].ToString(),
-                VendeurName = dataReader["Vendeur"].ToString()
-            };    
-        }
-
         public bool Createproduct(ProductFormDTO newProduct, int? id)
         {
             using(IDbConnection connection = new SqlConnection(_connectionString))
@@ -131,55 +145,6 @@ namespace Webshop_DAL.Services
                 }
             }
         }
-        public IEnumerable<Product> GetAllVendeur( int? id)
-        {
-
-            using (IDbConnection connection = new SqlConnection(_connectionString))
-            {
-
-                connection.Open();
-                using (IDbCommand command = connection.CreateCommand())
-                {
-
-                    command.CommandText = $"SELECT p.Id, p.[Name], p.[Quantity], p.[Price], p.[Description], p.[Image], c.[Name] as Category, u.[Username] as Vendeur " +
-                                            $"FROM Articles p " +
-                                            $"JOIN Category c on p.[Id_Category] = c.[Id] " +
-                                            $"JOIN Users u on p.[Id_Vendeur] = u.[Id] "+
-                                            $"WHERE p.Id_Vendeur = @id";
-
-                    GenerateParameter(command, "id", id);
-
-                    IDataReader reader = command.ExecuteReader();
-
-                    while (reader.Read())
-                        yield return Mapper(reader);
-                }
-            }
-        }
-
-        public bool DeleteProduct(int idProduct, int? id)
-        {
-            using(IDbConnection connection = new SqlConnection(_connectionString))
-            {
-                connection.Open();
-                using(IDbCommand command = connection.CreateCommand())
-                {
-                    command.CommandText = $"DELETE FROM Articles " +
-                                         $"WHERE Id = @idProduct ";
-
-                    if(id is not null)
-                    {
-                        command.CommandText += $"AND Id_Vendeur = @IdVendeur";
-                        GenerateParameter(command, "idVendeur", id);
-                    }
-                    GenerateParameter(command , "idProduct", idProduct);
-                    
-
-                    return command.ExecuteNonQuery() == 1;
-                }
-            }
-        }
-
         public Product UpdateProduct(ProductFormDTO product, int IdProduct, int? id)
         {
             Product updatedProduct;
@@ -249,108 +214,108 @@ namespace Webshop_DAL.Services
                 }
             }
         }
-
-        public bool RatingProduct(Evaluation rating, int? id)
+        public bool DeleteProduct(int idProduct, int? id)
         {
             using(IDbConnection connection = new SqlConnection(_connectionString))
             {
-                bool exist = false;
                 connection.Open();
-                using(IDbCommand command = connection.CreateCommand()) 
-                {
-                    command.CommandText = $"SELECT COUNT(*) FROM Evaluation WHERE Id_User = @idUser AND Id_Produit = @idProduit";
-                    GenerateParameter(command, "idUser", id);
-                    GenerateParameter(command, "idProduit", rating.id);
-
-                    exist = (int)command.ExecuteScalar()==1;
-                }
-
                 using(IDbCommand command = connection.CreateCommand())
                 {
-                    if (exist)
-                        command.CommandText = $"UPDATE Evaluation SET Etoile = @rating WHERE Id_User = @idUser AND Id_Produit = @idProduit";
-                    else
-                        command.CommandText = $"INSERT INTO Evaluation VALUES(@idUser, @idProduit, @rating)";
-                    GenerateParameter(command, "idUser", id);
-                    GenerateParameter(command, "idProduit", rating.id);
-                    GenerateParameter(command, "rating", rating.RatingValue);
+                    command.CommandText = $"DELETE FROM Articles " +
+                                         $"WHERE Id = @idProduct ";
+
+                    if(id is not null)
+                    {
+                        command.CommandText += $"AND Id_Vendeur = @IdVendeur";
+                        GenerateParameter(command, "idVendeur", id);
+                    }
+                    GenerateParameter(command , "idProduct", idProduct);
+                    
 
                     return command.ExecuteNonQuery() == 1;
                 }
             }
         }
-
-        public string LeaveComment(Commentaires commentaire, int? id)
+        public void AddToRecommandation(int? id, int idCategory)
         {
-            using(IDbConnection connection = new SqlConnection(_connectionString))
+            using (IDbConnection connection = new SqlConnection(_connectionString))
             {
-                bool exist = false;
                 connection.Open();
                 using (IDbCommand command = connection.CreateCommand())
                 {
-                    command.CommandText = $"SELECT COUNT(*) FROM Commentaires WHERE Id_User = @idUser AND Id_Produit = @idProduit";
-                    GenerateParameter(command, "idUser", id);
-                    GenerateParameter(command, "idProduit", commentaire.Id);
 
-                    exist = (int)command.ExecuteScalar() == 1;
-                }
-                if (exist)
-                    throw new Exception("Vous avez déjà laissé un commentaire sur ce produit.");
-                using (IDbCommand command =  connection.CreateCommand())
-                {
-                    command.CommandText = $"INSERT INTO Commentaires OUTPUT INSERTED.Commentaire VALUES(@idUser, @idProduct,@comment)";
+                    command.CommandText = $"INSERT INTO Recommandations VALUES (@idUser, @idCategory)";
                     GenerateParameter(command, "idUser", id);
-                    GenerateParameter(command, "idProduct", commentaire.Id);
-                    GenerateParameter(command, "@comment", commentaire.Commentaire);
+                    GenerateParameter(command, "idCategory", idCategory);
+
+                    command.ExecuteNonQuery();
+                }
+            }         
+        }
+        public IEnumerable<Product> GetAllVendeur( int? id)
+        {
+
+            using (IDbConnection connection = new SqlConnection(_connectionString))
+            {
+
+                connection.Open();
+                using (IDbCommand command = connection.CreateCommand())
+                {
+
+                    command.CommandText = $"SELECT p.Id, p.[Name], p.[Quantity], p.[Price], p.[Description], p.[Image], c.[Name] as Category, u.[Username] as Vendeur " +
+                                            $"FROM Articles p " +
+                                            $"JOIN Category c on p.[Id_Category] = c.[Id] " +
+                                            $"JOIN Users u on p.[Id_Vendeur] = u.[Id] "+
+                                            $"WHERE p.Id_Vendeur = @id";
+
+                    GenerateParameter(command, "id", id);
 
                     IDataReader reader = command.ExecuteReader();
-                    reader.Read();
-                    return reader["Commentaire"].ToString();
+
+                    while (reader.Read())
+                        yield return Mapper(reader);
                 }
             }
         }
-
-        public bool UpdateComment(Commentaires commentaire, int? id)
+        public IEnumerable<ProductMiniature> GetRecommendedItems(int? id)
         {
-            using(IDbConnection connection=new SqlConnection(_connectionString))
+            List<int> idsCategory = new();
+            List<ProductMiniature> products = new();
+            Random rand = new();
+            using (IDbConnection connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
-                using(IDbCommand command = connection.CreateCommand())
+                using (IDbCommand command = connection.CreateCommand())
                 {
-                    command.CommandText = "UPDATE Commentaires SET Commentaire = @comm WHERE Id_User = @idUser AND Id_Produit =@idProduit";
-                    GenerateParameter(command, "comm", commentaire.Commentaire);
+                    command.CommandText = $"SELECT DISTINCT Id_Category FROM Recommandations WHERE Id_User = @idUser";
                     GenerateParameter(command, "idUser", id);
-                    GenerateParameter(command, "idProduit", commentaire.Id);
 
-                    return command.ExecuteNonQuery()==1;
+                    using (IDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                            idsCategory.Add((int)reader["Id_Category"]);
+                    }
                 }
-            }
-        }
 
-        public bool DeleteComment(int commentaires, int? id)
-        {
-            using(IDbConnection connection = new SqlConnection(_connectionString)) 
-            { 
-                connection.Open();
-                using(IDbCommand command = connection.CreateCommand())
+                foreach (int idCategory in idsCategory)
                 {
-                    command.CommandText = $"DELETE FROM Commentaires WHERE Id_User = @idUser AND Id_Produit =@idProduit";
-                    GenerateParameter(command, "idUser", id);
-                    GenerateParameter(command, "idProduit", commentaires);
-                    return command.ExecuteNonQuery() == 1;
+                    using (IDbCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = "SELECT Name, Price, [Description], [Image] FROM Articles WHERE Id_Category = @idCategory " +
+                        "ORDER BY NEWID() " +
+                        "OFFSET 0 ROWS " +
+                        "FETCH NEXT @rand ROWS ONLY";
+                        GenerateParameter(command, "idCategory", idCategory);
+                        GenerateParameter(command, "rand", rand.Next(1, 5));
+
+                        using (IDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                                products.Add(MapperMiniature(reader));
+                        }
+                    }
                 }
-            }
-        }
-        private void AddToRecommandation(int? id, int? idCategory, IDbConnection connection)
-        {
-            using (IDbCommand command = connection.CreateCommand())
-            {
-
-                command.CommandText = $"INSERT INTO Recommandations VALUES (@idUser, @idCategory)";
-                GenerateParameter(command, "idUser", id);
-                GenerateParameter(command, "idCategory", idCategory);
-
-                command.ExecuteNonQuery();
+                return products;
             }
         }
     }

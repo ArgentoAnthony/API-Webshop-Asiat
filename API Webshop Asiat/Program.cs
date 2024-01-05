@@ -20,6 +20,8 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<TokenManager>();
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ICommentaireEvaluationService, CommentaireEvaluationService>();
+builder.Services.AddScoped<ICommandeService, CommandeService>();
 
 builder.Services.AddAuthorization(options =>
 {

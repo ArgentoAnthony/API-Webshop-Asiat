@@ -10,5 +10,6 @@ namespace Webshop_DAL.Models
     {
         public int Id { get; set; }
         public string Commentaire { get; set; }
+        public int Id_User { get; set; }
     }
 }

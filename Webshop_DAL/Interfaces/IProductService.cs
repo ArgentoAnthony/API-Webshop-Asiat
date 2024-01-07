@@ -19,5 +19,6 @@ namespace Webshop_DAL.Interfaces
         IEnumerable<ProductMiniature> GetRecommendedItems(int? id);
         void AddToRecommandation(int? id, int idCategory);
         int GetCategory(string category);
+        Product GetOne(int id);
     }
 }

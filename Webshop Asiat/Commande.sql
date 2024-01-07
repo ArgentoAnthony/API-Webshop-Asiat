@@ -1,6 +1,6 @@
 ﻿CREATE TABLE [dbo].[Commande]
 (
-	CommandNumber INT NOT NULL PRIMARY KEY IDENTITY,
+	CommandNumber UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
 	Id_User int NOT NULL,
 	CONSTRAINT [FK_User] FOREIGN KEY (Id_User) REFERENCES [Users]([Id])	
 )

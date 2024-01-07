@@ -33,10 +33,10 @@ namespace API_Webshop_Asiat.Controllers
         [HttpGet("{idProduct}")]
         public ActionResult GetItem(int idProduct)
         {
-            Product product = _productService.GetById("Articles", idProduct);
+            Product product = _productService.GetOne(idProduct);
             if (isConnected())
             _productService.AddToRecommandation(GetUserId(), _productService.GetCategory(product.Category));
-            return Ok(_productService.GetById("Articles",idProduct));
+            return Ok(product);
         }
         
         [HttpGet("search/{search}")]

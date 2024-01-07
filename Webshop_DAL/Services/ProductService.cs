@@ -6,6 +6,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Webshop_DAL.Exceptions;
 using Webshop_DAL.Interfaces;
 using Webshop_DAL.Models;
 
@@ -59,6 +60,30 @@ namespace Webshop_DAL.Services
 
                     while (reader.Read())
                         yield return Mapper(reader);
+                }
+            }
+        }
+        public Product GetOne(int id)
+        {
+            using (IDbConnection connection = new SqlConnection(_connectionString))
+            {
+
+                connection.Open();
+                using (IDbCommand command = connection.CreateCommand())
+                {
+
+                    command.CommandText = $"SELECT p.Id, p.[Name], p.[Quantity], p.[Price], p.[Description], p.[Image], c.[Name] as Category, u.[Username] as Vendeur " +
+                                            $"FROM Articles p " +
+                                            $"JOIN Category c on p.[Id_Category] = c.[Id] " +
+                                            $"JOIN Users u on p.[Id_Vendeur] = u.[Id] "+
+                                            $"WHERE p.Id = @id";
+                    GenerateParameter(command, "id", id);
+
+                    IDataReader reader = command.ExecuteReader();
+
+                    if (reader.Read())
+                        return Mapper(reader);
+                    throw new IdNotFoundException("Produit non trouvé");
                 }
             }
         }

@@ -22,7 +22,7 @@ namespace API_Webshop_Asiat.Controllers
         [HttpGet("admin-get-all")]
         public IActionResult GetAll() 
         {
-            return Ok(_commandeService.GetAll("Commande"));
+            return Ok(_commandeService.GetCommands());
         }
 
         [Authorize("IsConnected")]
@@ -33,24 +33,32 @@ namespace API_Webshop_Asiat.Controllers
         }
 
         [Authorize("IsConnected")]
-        [HttpGet("{id}")]
-        public IActionResult GetDetails(int id) 
+        [HttpGet("{commandNumber}")]
+        public IActionResult GetDetails(Guid commandNumber) 
         {
-            return Ok(_commandeService.GetById("command", id));
+            return Ok(_commandeService.GetCommandByCommandNumber(commandNumber));
         }
 
         [Authorize("IsConnected")]
         [HttpPost()]
         public IActionResult BuyCommand(List<Product> product)
         {
-            return Ok(_commandeService.BuyCommand(product));
+            try
+            {
+                _commandeService.BuyCommand(product, GetUserId());
+                return Ok("Commande effectuée");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [Authorize("IsConnected")]
-        [HttpDelete()]
-        public IActionResult DeleteCommand(int id)
+        [HttpDelete("{commandNumber}")]
+        public IActionResult DeleteCommand(Guid commandNumber)
         {
-            _commandeService.Delete("Commande", id);
+            _commandeService.DeleteCommande(commandNumber);
             return Ok();   
         }
         private int? GetUserId()

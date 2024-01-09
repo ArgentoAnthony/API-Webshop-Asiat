@@ -30,17 +30,24 @@ namespace API_Webshop_Asiat.Controllers
         [HttpPost("login/")]
         public IActionResult Login(LoginUserFormDTO loginForm)
         {
-            User user = _userService.Login(loginForm);
-            string json = JsonConvert.SerializeObject(
-                    new
-                    {
-                        token = _tokenManager.GenerateToken(
-                            user
-                        )
-                    }
-                ); ;
+            try
+            {
+                User user = _userService.Login(loginForm);
+                string json = JsonConvert.SerializeObject(
+                        new
+                        {
+                            token = _tokenManager.GenerateToken(
+                                user
+                            )
+                        }
+                    ); ;
 
-            return Ok(json);
+                return Ok(json);
+            }catch (Exception ex)
+            {
+                return BadRequest("Username ou mot de passe incorrect");
+            }
+            
         }
         [HttpPost("register/")]
         public IActionResult CreateAccount(CreateUserDTO user)
@@ -49,8 +56,8 @@ namespace API_Webshop_Asiat.Controllers
             return Ok();
         }
         [Authorize("IsConnected")]
-        [HttpPost("update/")]
-        public IActionResult UpdateAccount(AdminUpdateFormDTO newUserInfo)
+        [HttpPatch("update/")]
+        public IActionResult UpdateAccount(UserUpdateFormDTO newUserInfo)
         {
             int? id = GetUserId();
 
@@ -76,7 +83,7 @@ namespace API_Webshop_Asiat.Controllers
             
         }
 
-        [HttpPut("update-vendeur")]
+        [HttpPatch("update-vendeur")]
         [Authorize("IsVendeur")]
         public IActionResult UpdateVendeurAccount(VendeurUpdateFormDTO newUserInfo)
         {
@@ -124,13 +131,13 @@ namespace API_Webshop_Asiat.Controllers
 
         }
         [Authorize("IsAdmin")]
-        [HttpPut("admin-update/")]
+        [HttpPatch("admin-update/")]
         public IActionResult UpdateUser(AdminUpdateFormDTO adminUpdate) 
         {
             return Ok(_userService.Update(adminUpdate, adminUpdate.Id));
         }
         [Authorize("IsAdmin")]
-        [HttpDelete("admin-delete/")]
+        [HttpDelete("admin-delete/{id}")]
         public IActionResult DeleteUser(int id)
         {
             _userService.Delete("Users", id);

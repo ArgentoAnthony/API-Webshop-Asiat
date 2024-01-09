@@ -67,7 +67,7 @@ namespace API_Webshop_Asiat.Controllers
         }
         
         [Authorize("IsVendeur")]
-        [HttpPut("modify-product/{idProduct}")]
+        [HttpPatch("modify-product/{idProduct}")]
         public IActionResult VendeurUpdate(ProductFormDTO product, int idProduct)
         {
             int? id = GetUserId();
@@ -117,7 +117,7 @@ namespace API_Webshop_Asiat.Controllers
         }
         
         [Authorize("IsAdmin")]
-        [HttpPut("admin-update-product/{idProduct}")]
+        [HttpPatch("admin-update-product/{idProduct}")]
         public IActionResult AdminUpdateProduct(ProductFormDTO product, int idProduct)
         {
             return Ok(_productService.UpdateProduct(product, idProduct));

@@ -8,6 +8,6 @@ namespace Webshop_DAL.Models
 {
     public class VendeurUpdateFormDTO : UserUpdateFormDTO
     {
-        public string TVA { get; set; }
+        public int TVA { get; set; }
     }
 }
